@@ -27,6 +27,12 @@ import datetime
 top_words = pd.DataFrame(columns = ['text' , 'count'])
 top_authors = pd.DataFrame(columns = ['text' , 'count'])
 
+def preprocess_data(data):
+    data.fillna(value=' ') 
+    data.dropna()
+    data.mask(data.eq('None')).dropna()
+    data.mask(data.astype(str).eq('None')).dropna()
+
 def explore_data(data):
     data_out = pd.DataFrame()
     data_out['dates'] = explore_dates(data)
@@ -88,34 +94,14 @@ def plot_data(data):
     kind='bar', yTitle='Count', linecolor='black', title='Top 100 authors')
 
 def explore_dates(data):
-    return data['scraped_at'].map(lambda date_str: datetime.datetime.strptime(str(date_str), "%Y-%m-%d %H:%M:%S.%f"))
-    fig, ax = plt.subplots(1, 1, sharey=True, tight_layout=True)
+    ret = data['scraped_at'].map(lambda date_str: datetime.datetime.strptime(str(date_str), "%Y-%m-%d %H:%M:%S.%f"))
+    return ret
 
-    # We can set the number of bins with the `bins` kwarg
-    ax.hist(data['datetime'], bins=10)
-    xfmt = md.DateFormatter('%Y-%m-%d %H:%M:%S')
-    ax.xaxis.set_major_formatter(xfmt)
-
-    data['scraped_at'].iplot(
-    kind='hist',
-    bins=10,
-    xTitle='date',
-    linecolor='black',
-    yTitle='count',
-    title='Date Distribution')
 
 def explore_length(data):
-    return data['content'].astype(str).apply(len)
-    fig, ax = plt.subplots(1, 1, sharey=True, tight_layout=True)
-    ax.hist(data['length'], bins=10)
+    ret = data['content'].astype(str).apply(len)
+    return ret
 
-    data['length'].iplot(
-    kind='hist',
-    bins=10,
-    xTitle='text length',
-    linecolor='black',
-    yTitle='count',
-    title='Text Length Distribution')
 
 
 def explore_word_count(data):
@@ -185,7 +171,7 @@ if __name__ == "__main__":
     #data_set = load_data('../Data/news_sample.csv')
     #data_set = load_data('../Data/news_full.csv')
 
-    #df_chunk = pd.read_csv(r'../Data/news_sample.csv', chunksize=10)
+    #df_chunk = pd.read_csv(r'../Data/news_sample.csv', chunksize=10000)
     df_chunk = pd.read_csv(r'../Data/news_full.csv', chunksize=10000, low_memory= False)
 
     chunk_list = []
@@ -195,6 +181,7 @@ if __name__ == "__main__":
         print("Processing chunk ", n )
         end = time.time()
         print("elapsed time: ", end - start)
+        preprocess_data(chunk)
         chunk_out = explore_data(chunk)
         chunk_list.append(chunk_out)
 
