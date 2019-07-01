@@ -76,14 +76,20 @@ def plot_word_freq_compare(fake, reliable, n):
     plt.title("Top Words - Reliable")
     plt.savefig('results/top_words_reliable.png')
 
+    print(reliable[:n])
+    print(fake[:n])
+
 def explore_words(data, content_type, ngram_min = 1, ngram_max = 1):
 
     try:
         df = data.loc[data['type'] == content_type]
+        print(len(df.index), 'entries for ', content_type)
         vectorizer = sklearn.feature_extraction.text.CountVectorizer(stop_words='english', ngram_range=(ngram_min, ngram_max))
-        df['content'] = df['content'].apply(lambda text: ' '.join(word for word in TextBlob(text).words if word not in stop))
-        df['content'] = df['content'].apply(lambda text: ' '. join([word.lemmatize() for word in TextBlob(text).words]))
-        vec = vectorizer.fit_transform(df['content'].replace(np.nan, ' '))
+        #beg = time.time()
+        #df['content'] = df['content'].apply(lambda text: ' '.join(word for word in TextBlob(text).words if word not in stop))
+        #df['content'] = df['content'].apply(lambda text: ' '. join([word.lemmatize() for word in TextBlob(text).words if word not in stop]))
+        #print('time to filter words: ', time.time() - beg)
+        vec = vectorizer.fit_transform(df['content'])
         sum_words = vec.sum(axis=0)
         words_freq = [(word, sum_words[0, idx]) for word, idx in vectorizer.vocabulary_.items()]
         words_freq = sorted(words_freq, key = lambda x: x[1], reverse=True)
@@ -115,7 +121,7 @@ if __name__ == "__main__":
     filename = '../Data/news_full.csv'
     #filename = '../Data/news_sample.csv'
 
-    sample_size = 0.01 # up to 1
+    sample_size = 1  # up to 1
     #sample_size = 1
 
     # df_chunk = pd.read_csv( filename, chunksize = 100000, header = 0,
@@ -129,11 +135,11 @@ if __name__ == "__main__":
     # print('processed rows: ',row_count)
     # print('total rows: ',row_count/sample_size)
 
-    n_rows = 100000
+    n_rows = 10000
     chunk_size = 10000
     df_chunk = pd.read_csv( filename, chunksize = chunk_size, header = 0, nrows = n_rows,
                             engine='python', skip_blank_lines=True,  error_bad_lines = False,
-                            skiprows = lambda i: i>0 and random.random() > sample_size)
+                            skiprows = lambda i: i>0 and random.random() > sample_size )
 
     dataset = pd.DataFrame()
     polarity = pd.DataFrame()
@@ -143,16 +149,20 @@ if __name__ == "__main__":
     iteration_count = 0
     for chunk in df_chunk:
         iteration_count = iteration_count+1
-        print('Running iteration: ', iteration_count, "out of: ", int(np.ceil(n_rows/chunk_size)))
-        #pool.apply_async(explore_data, (chunk,))        
-        polarity = polarity.append(explore_polarity(chunk))
-        words_freq_fake = words_freq_fake.append(explore_words(chunk,'fake',2,5))
-        words_freq_fake.groupby('word',as_index=False)['count'].sum()
-        words_freq_reliable = words_freq_reliable.append(explore_words(chunk,'reliable',2,5))
-        words_freq_reliable.groupby('word',as_index=False)['count'].sum()
+        print('Running iteration: ', iteration_count, "out of: ", int(np.ceil(n_rows*sample_size/chunk_size)))
+        it_time = time.time()       
+        polarity = polarity.append(explore_polarity(chunk),ignore_index = True)
+        print('Polarity analysis time: ', time.time() - it_time)
+        it_time = time.time()   
+        words_freq_fake = words_freq_fake.append(explore_words(chunk,'fake',3,3),ignore_index = True)
+        print('Word freq (fake) analysis time: ', time.time() - it_time)
+        it_time = time.time()   
+        words_freq_reliable = words_freq_reliable.append(explore_words(chunk,'reliable',3,3),ignore_index = True)
+        print('Word freq (reliable) analysis time:', time.time() - it_time)  
         print('Elapsed time ', time.time() - start)
-        
 
+    words_freq_fake.groupby('word',as_index=False)['count'].sum()
+    words_freq_reliable.groupby('word',as_index=False)['count'].sum()
     plot_polarity(polarity)
     plot_word_freq_compare(words_freq_fake,words_freq_reliable,20)
     plt.show()
