@@ -76,9 +76,6 @@ def plot_word_freq_compare(fake, reliable, n):
     plt.title("Top Words - Reliable")
     plt.savefig('results/top_words_reliable.png')
 
-    print(reliable[:n])
-    print(fake[:n])
-
 def explore_words(data, content_type, ngram_min = 1, ngram_max = 1):
 
     try:
@@ -93,10 +90,10 @@ def explore_words(data, content_type, ngram_min = 1, ngram_max = 1):
         sum_words = vec.sum(axis=0)
         words_freq = [(word, sum_words[0, idx]) for word, idx in vectorizer.vocabulary_.items()]
         words_freq = sorted(words_freq, key = lambda x: x[1], reverse=True)
-        return pd.DataFrame(words_freq, columns = ['word' , 'count'])
+        return pd.DataFrame(words_freq, columns = ['word', 'count'])
     except Exception as e: 
         print(e)
-        return pd.DataFrame(None, columns = ['word' , 'count'])
+        return pd.DataFrame(None, columns = ['word', 'count'])
 
 def explore_polarity(data):
 
@@ -120,8 +117,9 @@ if __name__ == "__main__":
 
     filename = '../Data/news_full.csv'
     #filename = '../Data/news_sample.csv'
+    #filename = 'FakeNewsAnalysis/Data/news_sample.csv'
 
-    sample_size = 1  # up to 1
+    sample_size = 0.1  # up to 1
     #sample_size = 1
 
     # df_chunk = pd.read_csv( filename, chunksize = 100000, header = 0,
@@ -135,7 +133,7 @@ if __name__ == "__main__":
     # print('processed rows: ',row_count)
     # print('total rows: ',row_count/sample_size)
 
-    n_rows = 10000
+    n_rows = 1000000
     chunk_size = 10000
     df_chunk = pd.read_csv( filename, chunksize = chunk_size, header = 0, nrows = n_rows,
                             engine='python', skip_blank_lines=True,  error_bad_lines = False,
@@ -153,16 +151,18 @@ if __name__ == "__main__":
         it_time = time.time()       
         polarity = polarity.append(explore_polarity(chunk),ignore_index = True)
         print('Polarity analysis time: ', time.time() - it_time)
-        it_time = time.time()   
-        words_freq_fake = words_freq_fake.append(explore_words(chunk,'fake',3,3),ignore_index = True)
+        it_time = time.time()
+        words_freq_fake = words_freq_fake.append(explore_words(chunk,'fake',1,1),ignore_index=True)
+        words_freq_fake = words_freq_fake.groupby(['word']).sum()[['count']].reset_index()
+        words_freq_fake = words_freq_fake.sort_values(by=['count'], ascending = False)
         print('Word freq (fake) analysis time: ', time.time() - it_time)
         it_time = time.time()   
-        words_freq_reliable = words_freq_reliable.append(explore_words(chunk,'reliable',3,3),ignore_index = True)
+        words_freq_reliable = words_freq_reliable.append(explore_words(chunk,'reliable',1,1),ignore_index=True)
+        words_freq_reliable = words_freq_reliable.groupby(['word']).sum()[['count']].reset_index()
+        words_freq_reliable = words_freq_reliable.sort_values(by=['count'], ascending = False)
         print('Word freq (reliable) analysis time:', time.time() - it_time)  
         print('Elapsed time ', time.time() - start)
-
-    words_freq_fake.groupby('word',as_index=False)['count'].sum()
-    words_freq_reliable.groupby('word',as_index=False)['count'].sum()
+    
     plot_polarity(polarity)
     plot_word_freq_compare(words_freq_fake,words_freq_reliable,20)
     plt.show()
