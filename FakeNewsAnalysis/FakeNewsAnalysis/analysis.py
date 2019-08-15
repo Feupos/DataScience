@@ -5,6 +5,7 @@ import matplotlib.dates as md
 
 import sklearn
 from sklearn import svm
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
 from textblob import TextBlob, Word, Blobber
 import nltk
@@ -51,10 +52,12 @@ import itertools
 #from multiprocessing.pool import ThreadPool
 #pool = ThreadPool(20)  # However many you wish to run in parallel
 
+from tqdm import tqdm
+
 # initialize data structures
 start = time.time()
 iteration_count = 0
-    
+
 
 def preprocess_data(data):
 
@@ -80,6 +83,14 @@ def count_nouns(text):
         tags = TextBlob(text).tags
         tags = [i[1] for i in tags]
         return sum(map(lambda x : 1 if 'NN' in x else 0, tags))/len(tags)
+    except:
+        return 0
+
+def count_proper_nouns(text):
+    try:
+        tags = TextBlob(text).tags
+        tags = [i[1] for i in tags]
+        return sum(map(lambda x : 1 if 'NNP' in x else 0, tags))/len(tags)
     except:
         return 0
 
@@ -111,68 +122,56 @@ def fk_grade(text):
     #blob = TextBlob(text)
     #return 0.39 * (len(blob.words)/len(blob.sentences)) + 11.8 ((len(blob.sy))/len(blob.words)) -15.59
 
+def get_bow(text):
+    tfidf_transformer = TfidfTransformer()
+    count_vect = CountVectorizer()
+    X_train_counts = count_vect.fit_transform([text])
+    return tfidf_transformer.fit_transform(X_train_counts)
+    #bow = CountVectorizer(max_features=1000, lowercase=True, ngram_range=(1,1),analyzer = "word")
+    #return bow.fit_transform([text])
+
+def get_polarity(text):
+    polarity = 0    
+    try:
+        polarity = TextBlob(text).sentiment.polarity
+    except:
+        print("invalid content for polarity")
+    return polarity
+
 
 def parse_features(data, title_features, body_features):
     new_body_features = pd.DataFrame({'type':data['type'],
+                                      #'BoW':data['content'].map(get_bow),
+                                      'per_stop':data['content'].map(count_stop),
                                       'WC':data['content'].map(count_words),
                                       'TTR':data['content'].map(calc_ttr),
                                       'NN':data['content'].map(count_nouns),
-                                      'quote':data['content'].map(count_quotes)})
+                                      'avg_wlen':data['content'].map(avg_wlen),
+                                      'quote':data['content'].map(count_quotes),
+                                      'FK':data['content'].map(fk_grade),
+                                      'polarity':data['content'].map(get_polarity),
+                                      'NNP':data['content'].map(count_proper_nouns)})
     #print(new_body_features)
     body_features = body_features.append(new_body_features)
     #need this for some reason
     body_features['WC'] = body_features['WC'].astype(int)
     new_title_features = pd.DataFrame({'type':data['type'],
+                                      #'BoW':data['title'].map(get_bow),
                                       'per_stop':data['title'].map(count_stop),
+                                      'WC':data['title'].map(count_words),
+                                      'TTR':data['title'].map(calc_ttr),
                                       'NN':data['title'].map(count_nouns),
                                       'avg_wlen':data['title'].map(avg_wlen),
-                                      'FK':data['title'].map(fk_grade)})
+                                      'quote':data['title'].map(count_quotes),
+                                      'FK':data['title'].map(fk_grade),
+                                      'polarity':data['title'].map(get_polarity),
+                                      'NNP':data['title'].map(count_proper_nouns)})
     title_features = title_features.append(new_title_features)
 
     return title_features, body_features
     #body_features = body_features.reset_index(drop=True)
     #body_features['type'] = body_features['type'].append(data['type'])
     
-
-def plot_features(body_features, title_features):
-    # ['type', 'WC', 'TTR', 'NN', 'quote']
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    save_dir = 'FakeNewsAnalysis/Results/'
-    plt.figure()
-    sns.boxplot(y = 'type', x = 'NN', data = body_features, whis="range", palette="vlag")
-    plt.tight_layout()
-    plt.savefig(save_dir + timestamp + 'body' + 'NN')
-    plt.figure()
-    sns.boxplot(y = 'type', x = 'TTR', data = body_features, whis="range", palette="vlag")
-    plt.tight_layout()
-    plt.savefig(save_dir + timestamp + 'body' + 'TTR')
-    plt.figure()
-    sns.boxplot(y = 'type', x = 'WC', data = body_features, whis="range", palette="vlag")
-    plt.tight_layout()
-    plt.savefig(save_dir + timestamp + 'body' + 'WC')
-    plt.figure()
-    sns.boxplot(y = 'type', x = 'quote', data = body_features, whis="range", palette="vlag")
-    plt.tight_layout()
-    plt.savefig(save_dir + timestamp + 'body' + 'quote')
-
-    plt.figure()
-    sns.boxplot(y = 'type', x = 'per_stop', data = title_features, whis="range", palette="vlag")
-    plt.tight_layout()
-    plt.savefig(save_dir + timestamp + 'title' + 'per_stop')
-    plt.figure()
-    sns.boxplot(y = 'type', x = 'NN', data = title_features, whis="range", palette="vlag")
-    plt.tight_layout()
-    plt.savefig(save_dir + timestamp + 'title' + 'NN')
-    plt.figure()
-    sns.boxplot(y = 'type', x = 'avg_wlen', data = title_features, whis="range", palette="vlag")
-    plt.tight_layout()
-    plt.savefig(save_dir + timestamp + 'title' + 'avg_wlen')
-    plt.figure()
-    sns.boxplot(y = 'type', x = 'FK', data = title_features, whis="range", palette="vlag")
-    plt.tight_layout()
-    plt.savefig(save_dir + timestamp + 'title' + 'FK')
-
-    plt.show()
 
 if __name__ == "__main__":
 
@@ -181,12 +180,12 @@ if __name__ == "__main__":
     filename = 'FakeNewsAnalysis/Data/news_full.csv'
     #filename = 'FakeNewsAnalysis/Data/news_sample.csv'
 
-    sample_size = 0.1  # up to 1
+    sample_size = 0.001  # up to 1
 
-    n_rows = 1000
-    chunk_size = 10000
+    n_rows = 100000000#84999000000
+    chunk_size = 100000
 
-    df_chunk = pd.read_csv( filename, chunksize = chunk_size, header = 0, nrows = n_rows,
+    df_chunk = pd.read_csv( filename, chunksize = chunk_size, header = 0, #nrows = n_rows,
                             engine='python', skip_blank_lines=True,  error_bad_lines = False)
                             #skiprows=lambda i: i>0 and random.random() > sample_size)
 
@@ -195,58 +194,27 @@ if __name__ == "__main__":
     words_freq_fake = pd.DataFrame()
     words_freq_reliable = pd.DataFrame()
 
-    title_features = pd.DataFrame(columns = ['per_stop', 'NN', 'avg_wlen', 'FK'])
-    body_features = pd.DataFrame(columns = ['type', 'WC', 'TTR', 'NN', 'quote'])
+    title_features = pd.DataFrame()#columns = ['type', 'BoW', 'per_stop', 'NN', 'avg_wlen', 'FK'])
+    body_features = pd.DataFrame()#columns = ['type', 'BoW', 'WC', 'TTR', 'NN', 'quote'])
 
-    for chunk in df_chunk:
-        iteration_count = iteration_count+1
-        print('Running iteration: ', iteration_count, "out of: ", int(np.ceil(n_rows/chunk_size)))
-        try:
-            chunk = chunk[chunk.type.isin(['fake', 'reliable'])]
-            chunk = chunk.sample(frac=sample_size)
-            title_features, body_features = parse_features(chunk, title_features, body_features)
-        except:
-            print('Failure in iteration')
-
-    print(body_features)
-    print(title_features)
-    #plot_features(body_features, title_features)
+    with tqdm(total=n_rows) as pbar:
+        for chunk in df_chunk:
+            iteration_count = iteration_count+1
+            #print('Running iteration: ', iteration_count, "out of: ", int(np.ceil(n_rows/chunk_size)))
+            try:
+                #chunk = chunk[chunk.type.isin(['fake', 'reliable'])]
+                chunk = chunk.sample(frac=sample_size)
+                rows, cols = chunk.shape
+                #print('valid entries in iteration: ' + str(rows) + ' out of ' + str(chunk_size*sample_size))
+                if (0 < rows):
+                    title_features, body_features = parse_features(chunk, title_features, body_features)
+            except Exception as error:
+                #print('Failure in iteration: ' + str(error))
+                pass
+            pbar.update(chunk_size)
+    pbar.update(chunk_size)
     end = time.time()
     print("total time: ", end - start)
-    print('baseline: ' + str(title_features[title_features.type.isin(['fake'])].type.count()/title_features.type.count()))
 
-    scores = []
-    cv = sklearn.model_selection.KFold(n_splits=5, random_state=42, shuffle=True)
-    for train_index, test_index in cv.split(body_features):
-        X = body_features.iloc[train_index].drop(columns='type')
-        y = body_features.iloc[train_index].type
-        clf = svm.SVC(gamma='scale')
-        clf.fit(X, y) 
-        prediction = clf.predict(body_features.iloc[test_index].drop(columns='type'))
-        correct = 0
-        total = 0
-        for predicted, real in zip(prediction, body_features.iloc[train_index].type):
-            total = total + 1
-            if (predicted == real):
-                correct = correct + 1
-        #print('body guess ' + str(correct) + ' out of ' + str(total) + ' - ' + str(correct/total) +'%')
-        scores.append(correct/total)
-    print('body feature prediction score: ' + str(mean(scores)))
-
-    scores = []
-    cv = sklearn.model_selection.KFold(n_splits=5, random_state=42, shuffle=True)
-    for train_index, test_index in cv.split(title_features):
-        X = title_features.iloc[train_index].drop(columns='type')
-        y = title_features.iloc[train_index].type
-        clf = svm.SVC(gamma='scale')
-        clf.fit(X, y) 
-        prediction = clf.predict(title_features.iloc[test_index].drop(columns='type'))
-        correct = 0
-        total = 0
-        for predicted, real in zip(prediction, title_features.iloc[train_index].type):
-            total = total + 1
-            if (predicted == real):
-                correct = correct + 1
-        #print('title guess ' + str(correct) + ' out of ' + str(total) + ' - ' + str(correct/total) +'%')
-        scores.append(correct/total)
-    print('title feature prediction score: ' + str(mean(scores)))
+    title_features.to_pickle('FakeNewsAnalysis/Data/title_features.pkl')
+    body_features.to_pickle('FakeNewsAnalysis/Data/body_features.pkl') 

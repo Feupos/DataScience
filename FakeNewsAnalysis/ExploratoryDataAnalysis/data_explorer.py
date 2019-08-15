@@ -157,6 +157,7 @@ def explore_polarity(data):
         print(e)
         return pd.DataFrame(None, columns = ['type', 'polarity', 'top_words'])
 
+
     
 
 def preprocess_data(data):
@@ -170,11 +171,11 @@ if __name__ == "__main__":
 
     print("start")
 
-    filename = '../Data/news_full.csv'
+    #filename = '../Data/news_full.csv'
     #filename = '../Data/news_sample.csv'
-    #filename = 'FakeNewsAnalysis/Data/news_sample.csv'
+    filename = 'FakeNewsAnalysis/Data/news_sample.csv'
 
-    sample_size = 0.01  # up to 1
+    sample_size = 1  # up to 1
     #sample_size = 1
 
     # df_chunk = pd.read_csv( filename, chunksize = 100000, header = 0,
@@ -187,43 +188,65 @@ if __name__ == "__main__":
     # print('sample size:',sample_size*100,'%')
     # print('processed rows: ',row_count)
     # print('total rows: ',row_count/sample_size)
-    n_rows = 100000
+    n_rows = 50
     chunk_size = 1000
 
     df_chunk = pd.read_csv( filename, chunksize = chunk_size, header = 0, nrows = n_rows,
-                            engine='python', skip_blank_lines=True,  error_bad_lines = False,
-                            skiprows=lambda i: i>0 and random.random() > sample_size)
+                            engine='python', skip_blank_lines=True,  error_bad_lines = False)
+                            #skiprows=lambda i: i>0 and random.random() > sample_size)
 
     dataset = pd.DataFrame()
     polarity = pd.DataFrame()
     words_freq_fake = pd.DataFrame()
     words_freq_reliable = pd.DataFrame()
-
+    trump_count = 0
+    hillary_count = 0
     iteration_count = 0
+    total_count = 0
     for chunk in df_chunk:
-        #chunk = chunk.sample(frac=sample_size)
+        chunk = chunk.sample(frac=sample_size)
+        
+        for entry in chunk['content']:
+            total_count = total_count+1
+            #print("!-----------------")
+            #print(entry)
+            if (entry.find('Trump') > 0):
+                #print(entry[entry.find('Trump')-20:entry.find('Trump')+20])
+                trump_count = trump_count+1
+            if (entry.find('Hillary') > 0):
+                #print(entry[entry.find('Hillary')-20:entry.find('Hillary')+20])
+                hillary_count = hillary_count+1
+            #print("------------------!")
+        print(total_count, trump_count, hillary_count)
+
         iteration_count = iteration_count+1
         print('Running iteration: ', iteration_count, "out of: ", int(np.ceil(n_rows/chunk_size)))
         it_time = time.time()       
         polarity = polarity.append(explore_polarity(chunk),ignore_index = True)
         print('Polarity analysis time: ', time.time() - it_time)
         it_time = time.time()
-        words_freq_fake = words_freq_fake.append(explore_words(chunk,'fake',2,2),ignore_index=True)
+        #words_freq_fake = words_freq_fake.append(explore_words(chunk,'fake',2,2),ignore_index=True)
         print('Word freq (fake) analysis time: ', time.time() - it_time)
         it_time = time.time()   
-        words_freq_reliable = words_freq_reliable.append(explore_words(chunk,'reliable',2,2),ignore_index=True)
+        #words_freq_reliable = words_freq_reliable.append(explore_words(chunk,'reliable',2,2),ignore_index=True)
         print('Word freq (reliable) analysis time:', time.time() - it_time)  
         print('Elapsed time ', time.time() - start)
-    
+    print(polarity)
 
-    words_freq_fake = words_freq_fake.groupby(['word']).sum()[['count']].reset_index()
-    words_freq_fake = words_freq_fake.sort_values(by=['count'], ascending = False)
-    words_freq_reliable = words_freq_reliable.groupby(['word']).sum()[['count']].reset_index()
-    words_freq_reliable = words_freq_reliable.sort_values(by=['count'], ascending = False)
-    plot_polarity(polarity)
-    plot_word_freq_compare(words_freq_fake,words_freq_reliable,20)
+    plt.figure()
+
+    #words_freq_fake = words_freq_fake.groupby(['word']).sum()[['count']].reset_index()
+    #words_freq_fake = words_freq_fake.sort_values(by=['count'], ascending = False)
+    #words_freq_reliable = words_freq_reliable.groupby(['word']).sum()[['count']].reset_index()
+    #words_freq_reliable = words_freq_reliable.sort_values(by=['count'], ascending = False)
+    #plot_polarity(polarity)
+    #plot_word_freq_compare(words_freq_fake,words_freq_reliable,20)
+    #plt.show()
+    print(type(polarity))
+    print(polarity)
+    sns.boxplot(x = 'polarity', data = polarity,
+                whis="range", palette="vlag")
     plt.show()
-
     end = time.time()
     print("total time: ", end - start)
 

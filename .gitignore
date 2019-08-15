@@ -114,5 +114,6 @@ FakeNewsAnalysis/Data/
 
 #images
 *.png
+*.svg
 
 FakeNewsAnalysis/Results/
