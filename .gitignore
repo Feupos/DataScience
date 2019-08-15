@@ -89,6 +89,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.vscode/
+*/.vscode/
 
 # Spyder project settings
 .spyderproject
@@ -104,8 +106,13 @@ venv.bak/
 .mypy_cache/
 
 # Large data files
-FakeNewsAnalysis/Data/*
+FakeNewsAnalysis/Data/
 
 # Documents
-.pdf
-.pptx
+*.pdf
+*.pptx
+
+#images
+*.png
+
+FakeNewsAnalysis/Results/
