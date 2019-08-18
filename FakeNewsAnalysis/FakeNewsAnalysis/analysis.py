@@ -54,10 +54,7 @@ import itertools
 
 from tqdm import tqdm
 
-# initialize data structures
-start = time.time()
-iteration_count = 0
-
+import glob
 
 def preprocess_data(data):
 
@@ -82,7 +79,7 @@ def count_nouns(text):
     try:
         tags = TextBlob(text).tags
         tags = [i[1] for i in tags]
-        return sum(map(lambda x : 1 if 'NN' in x else 0, tags))/len(tags)
+        return sum(map(lambda x : 1 if 'NN' in x else 0, tags))
     except:
         return 0
 
@@ -90,17 +87,17 @@ def count_proper_nouns(text):
     try:
         tags = TextBlob(text).tags
         tags = [i[1] for i in tags]
-        return sum(map(lambda x : 1 if 'NNP' in x else 0, tags))/len(tags)
+        return sum(map(lambda x : 1 if 'NNP' in x else 0, tags))
     except:
         return 0
 
 def count_quotes(text):
     try:
-        return sum(map(lambda x : 1 if '"' in x else 0, text))/len(text)
+        return sum(map(lambda x : 1 if '"' in x else 0, text))/2
     except:
         return 0
 
-def count_stop(text):
+def count_per_stop(text):
     try:
         words = TextBlob(text).words
         return sum(map(lambda x : 1 if x in stop else 0, words))/len(words)
@@ -135,14 +132,15 @@ def get_polarity(text):
     try:
         polarity = TextBlob(text).sentiment.polarity
     except:
-        print("invalid content for polarity")
+        #print("invalid content for polarity")
+        pass
     return polarity
 
 
 def parse_features(data, title_features, body_features):
     new_body_features = pd.DataFrame({'type':data['type'],
                                       #'BoW':data['content'].map(get_bow),
-                                      'per_stop':data['content'].map(count_stop),
+                                      'per_stop':data['content'].map(count_per_stop),
                                       'WC':data['content'].map(count_words),
                                       'TTR':data['content'].map(calc_ttr),
                                       'NN':data['content'].map(count_nouns),
@@ -157,7 +155,7 @@ def parse_features(data, title_features, body_features):
     body_features['WC'] = body_features['WC'].astype(int)
     new_title_features = pd.DataFrame({'type':data['type'],
                                       #'BoW':data['title'].map(get_bow),
-                                      'per_stop':data['title'].map(count_stop),
+                                      'per_stop':data['title'].map(count_per_stop),
                                       'WC':data['title'].map(count_words),
                                       'TTR':data['title'].map(calc_ttr),
                                       'NN':data['title'].map(count_nouns),
@@ -173,7 +171,9 @@ def parse_features(data, title_features, body_features):
     #body_features['type'] = body_features['type'].append(data['type'])
     
 
-if __name__ == "__main__":
+def parse_full_dataset():
+    start = time.time()
+    #iteration_count = 0
 
     print("start")
 
@@ -182,24 +182,24 @@ if __name__ == "__main__":
 
     sample_size = 0.001  # up to 1
 
-    n_rows = 100000000#84999000000
-    chunk_size = 100000
+    n_rows = 1000000#84999000000
+    chunk_size = 10000
 
     df_chunk = pd.read_csv( filename, chunksize = chunk_size, header = 0, #nrows = n_rows,
                             engine='python', skip_blank_lines=True,  error_bad_lines = False)
                             #skiprows=lambda i: i>0 and random.random() > sample_size)
 
-    dataset = pd.DataFrame()
-    polarity = pd.DataFrame()
-    words_freq_fake = pd.DataFrame()
-    words_freq_reliable = pd.DataFrame()
+    #dataset = pd.DataFrame()
+    #polarity = pd.DataFrame()
+    #words_freq_fake = pd.DataFrame()
+    #words_freq_reliable = pd.DataFrame()
 
     title_features = pd.DataFrame()#columns = ['type', 'BoW', 'per_stop', 'NN', 'avg_wlen', 'FK'])
     body_features = pd.DataFrame()#columns = ['type', 'BoW', 'WC', 'TTR', 'NN', 'quote'])
 
     with tqdm(total=n_rows) as pbar:
         for chunk in df_chunk:
-            iteration_count = iteration_count+1
+            #iteration_count = iteration_count+1
             #print('Running iteration: ', iteration_count, "out of: ", int(np.ceil(n_rows/chunk_size)))
             try:
                 #chunk = chunk[chunk.type.isin(['fake', 'reliable'])]
@@ -218,3 +218,52 @@ if __name__ == "__main__":
 
     title_features.to_pickle('FakeNewsAnalysis/Data/title_features.pkl')
     body_features.to_pickle('FakeNewsAnalysis/Data/body_features.pkl') 
+
+def parse_orig_dataset():
+    
+    title_features = pd.DataFrame()#columns = ['type', 'BoW', 'per_stop', 'NN', 'avg_wlen', 'FK'])
+    body_features = pd.DataFrame()#columns = ['type', 'BoW', 'WC', 'TTR', 'NN', 'quote'])
+
+    path_content = r'FakeNewsAnalysis/Data/orig_data/dataset/Fake'
+    all_content = glob.glob(path_content + "/*.txt")
+    path_title = r'FakeNewsAnalysis/Data/orig_data/dataset/Fake_titles'
+    all_title = glob.glob(path_title + "/*.txt")
+
+
+    df = pd.DataFrame(columns = ['type' , 'content', 'title'])
+
+    for (fc, ft) in zip(all_content, all_title):
+        c = open(fc)
+        t = open(ft)
+        item = pd.DataFrame({'type':['fake'],
+                             'title':[t.read()],
+                             'content':[c.read()]})
+                                    
+        df = df.append(item)
+
+    path_content = r'FakeNewsAnalysis/Data/orig_data/dataset/Real'
+    all_content = glob.glob(path_content + "/*.txt")
+    path_title = r'FakeNewsAnalysis/Data/orig_data/dataset/Real_titles'
+    all_title = glob.glob(path_title + "/*.txt")
+
+    for (fc, ft) in zip(all_content, all_title):
+        c = open(fc)
+        t = open(ft)
+        item = pd.DataFrame({'type':['reliable'],
+                             'title':[t.read()],
+                             'content':[c.read()]})
+                                    
+        df = df.append(item)
+
+    title_features, body_features = parse_features(df, title_features, body_features)
+
+    print(title_features)
+    print(body_features)
+
+    title_features.to_pickle('FakeNewsAnalysis/Data/title_features_orig.pkl')
+    body_features.to_pickle('FakeNewsAnalysis/Data/body_features_orig.pkl') 
+
+
+if __name__ == "__main__":
+    parse_full_dataset()
+    #parse_orig_dataset()
