@@ -12,6 +12,10 @@ import nltk
 nltk.download('stopwords')
 from nltk.corpus import stopwords
 stop = stopwords.words('english')
+#nltk.download('names')
+#from nltk.corpus import names
+#male_names = names.words('male.txt')
+#female_names = names.words('female.txt')
 import textstat
 
 from lexicalrichness import LexicalRichness
@@ -55,6 +59,18 @@ import itertools
 from tqdm import tqdm
 
 import glob
+
+import os.path
+import sys
+from os import getcwd
+
+
+from sentistrength import PySentiStr
+senti = PySentiStr()
+#senti.setSentiStrengthPath('C:\\SentiStrength\\SentiStrength.jar') # e.g. 'C:\Documents\SentiStrength.jar'
+#senti.setSentiStrengthLanguageFolderPath('C:\\SentiStrength') # e.g. 'C:\Documents\SentiStrengthData\'
+senti.setSentiStrengthPath(os.path.join(getcwd(),"SentiStrengthData/SentiStrength.jar"))
+senti.setSentiStrengthLanguageFolderPath(os.path.join(getcwd(),"SentiStrengthData/"))
 
 def preprocess_data(data):
 
@@ -136,6 +152,56 @@ def get_polarity(text):
         pass
     return polarity
 
+def get_pos_str(text):
+    try:
+        return senti.getSentiment(text, score='binary')[0][1]
+    except:
+        return 0
+
+def get_neg_str(text):
+    try:
+        return senti.getSentiment(text, score='binary')[0][0]
+    except:
+        return 0
+
+def count_names(text):
+    try:
+        print(sum(map(lambda x : 1 if x in male_names else 0, TextBlob(text).words)))
+        return 0
+    except:
+        return 0
+
+def count_JJS(text):
+    try:
+        tags = TextBlob(text).tags
+        tags = [i[1] for i in tags]
+        return sum(map(lambda x : 1 if 'JJS' in x else 0, tags))
+    except:
+        return 0
+
+def count_JJR(text):
+    try:
+        tags = TextBlob(text).tags
+        tags = [i[1] for i in tags]
+        return sum(map(lambda x : 1 if 'JJR' in x else 0, tags))
+    except:
+        return 0
+
+def count_RBR(text):
+    try:
+        tags = TextBlob(text).tags
+        tags = [i[1] for i in tags]
+        return sum(map(lambda x : 1 if 'JJS' in x else 0, tags))
+    except:
+        return 0
+
+def count_RBS(text):
+    try:
+        tags = TextBlob(text).tags
+        tags = [i[1] for i in tags]
+        return sum(map(lambda x : 1 if 'JJR' in x else 0, tags))
+    except:
+        return 0
 
 def parse_features(data, title_features, body_features):
     new_body_features = pd.DataFrame({'type':data['type'],
@@ -147,8 +213,15 @@ def parse_features(data, title_features, body_features):
                                       'avg_wlen':data['content'].map(avg_wlen),
                                       'quote':data['content'].map(count_quotes),
                                       'FK':data['content'].map(fk_grade),
-                                      'polarity':data['content'].map(get_polarity),
-                                      'NNP':data['content'].map(count_proper_nouns)})
+                                      #'polarity':data['content'].map(get_polarity),
+                                      'NNP':data['content'].map(count_proper_nouns),
+                                      'str_neg':data['content'].map(get_neg_str),
+                                      'str_pos':data['content'].map(get_pos_str),
+                                      'JJR':data['content'].map(count_JJR),
+                                      'JJS':data['content'].map(count_JJS),
+                                      'RBR':data['content'].map(count_RBR),
+                                      'RBS':data['content'].map(count_RBS)
+                                      })
     #print(new_body_features)
     body_features = body_features.append(new_body_features)
     #need this for some reason
@@ -163,17 +236,24 @@ def parse_features(data, title_features, body_features):
                                       'quote':data['title'].map(count_quotes),
                                       'FK':data['title'].map(fk_grade),
                                       'polarity':data['title'].map(get_polarity),
-                                      'NNP':data['title'].map(count_proper_nouns)})
+                                      'NNP':data['title'].map(count_proper_nouns),
+                                      'str_neg':data['title'].map(get_neg_str),
+                                      'str_pos':data['title'].map(get_pos_str),
+                                      'JJR':data['title'].map(count_JJR),
+                                      'JJS':data['title'].map(count_JJS),
+                                      'RBR':data['title'].map(count_RBR),
+                                      'RBS':data['title'].map(count_RBS)
+                                      })
     title_features = title_features.append(new_title_features)
+    #need this for some reason
+    title_features['WC'] = title_features['WC'].astype(int)
 
     return title_features, body_features
-    #body_features = body_features.reset_index(drop=True)
-    #body_features['type'] = body_features['type'].append(data['type'])
+
     
 
 def parse_full_dataset():
     start = time.time()
-    #iteration_count = 0
 
     print("start")
 
@@ -182,37 +262,30 @@ def parse_full_dataset():
 
     sample_size = 0.001  # up to 1
 
-    n_rows = 1000000#84999000000
-    chunk_size = 10000
+    n_rows = 9408908#20000000#84999000000
+    chunk_size = int(n_rows/1000)
 
-    df_chunk = pd.read_csv( filename, chunksize = chunk_size, header = 0, #nrows = n_rows,
+    df_chunk = pd.read_csv( filename, chunksize = chunk_size, header = 0, nrows = n_rows,
                             engine='python', skip_blank_lines=True,  error_bad_lines = False)
                             #skiprows=lambda i: i>0 and random.random() > sample_size)
 
-    #dataset = pd.DataFrame()
-    #polarity = pd.DataFrame()
-    #words_freq_fake = pd.DataFrame()
-    #words_freq_reliable = pd.DataFrame()
-
-    title_features = pd.DataFrame()#columns = ['type', 'BoW', 'per_stop', 'NN', 'avg_wlen', 'FK'])
-    body_features = pd.DataFrame()#columns = ['type', 'BoW', 'WC', 'TTR', 'NN', 'quote'])
+    title_features = pd.DataFrame()
+    body_features = pd.DataFrame()
 
     with tqdm(total=n_rows) as pbar:
         for chunk in df_chunk:
-            #iteration_count = iteration_count+1
-            #print('Running iteration: ', iteration_count, "out of: ", int(np.ceil(n_rows/chunk_size)))
             try:
-                #chunk = chunk[chunk.type.isin(['fake', 'reliable'])]
+                chunk = chunk[chunk.type.isin(['fake', 'reliable'])]
                 chunk = chunk.sample(frac=sample_size)
                 rows, cols = chunk.shape
-                #print('valid entries in iteration: ' + str(rows) + ' out of ' + str(chunk_size*sample_size))
                 if (0 < rows):
                     title_features, body_features = parse_features(chunk, title_features, body_features)
             except Exception as error:
-                #print('Failure in iteration: ' + str(error))
+                print('Failure processing chunk: ' + str(error))
                 pass
             pbar.update(chunk_size)
     pbar.update(chunk_size)
+
     end = time.time()
     print("total time: ", end - start)
 
@@ -265,5 +338,5 @@ def parse_orig_dataset():
 
 
 if __name__ == "__main__":
-    parse_full_dataset()
-    #parse_orig_dataset()
+    #parse_full_dataset()
+    parse_orig_dataset()
