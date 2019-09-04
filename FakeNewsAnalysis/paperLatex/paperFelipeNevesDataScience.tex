@@ -245,8 +245,9 @@ Combined & 50\% & 60.27\% \\
 We also tried increasing the number of features in order to try to improve the performance,
 specially in the expanded dataset that had a very poor performance with the original features.
 In these tests we also switched the classifier for the Random Forest classifier due to the
-SVM being to slow to calculate with too many features and entries. Previous tests had already
-suggested that the classifier had little impact in the overall performance.
+SVM being to slow to calculate with too many features and entries.
+
+Previous tests had already suggested that the classifier had little impact in the overall performance.
 The results are shown in the Table \ref{table:od_ef} and Table \ref{table:od_of}.
 
 \begin{table}[htbp]
@@ -287,20 +288,108 @@ Combined & 50\% & 71.8\% \\
 
 \subsection{Compared Results}
 
-TODO: plot new graph
+For the purpose of being able to better distinguish the results on each step we show
+in Figure \ref{fig:results} a comparison between all the results side by side.
+
+\begin{figure}[htbp]
+\centerline{
+    \includegraphics[width=0.5\textwidth]
+    {content/results.png}
+    }
+\caption{Results comparison}
+\label{fig:results}
+\end{figure}
 
 \section{Discussion}
 \label{section:discussion}
 
-\section{Discussion}
-\label{section:discussion}
+As it is clear to see in Figure \ref{fig:results} it is clear that the performance over
+this bigger dataset was significantly worse than in the original paper \cite{horne_2017},
+however it is important to understand why whe had such difference.
+
+One very obvious reason for the divergence of the results of the classifier for the original
+dataset is that the algorithms, libraries and classifiers utilized in our implementation.
+This means that even though the author shared the dataset \cite{horne_data_2017}, as they
+did not share their implementation and it makes it very hard to reproduce the same results.
+
+In the field of Data Science reproducibility is a very important issue because due to the
+problem that finding reliable and unbiased datasets represent we often find the need to
+test and validate solutions proposed in other peoples' works. And in cases where either
+the source code or the datasets are not available it becomes near impossible to do
+\cite{peng_2011}\cite{peng_2015}.
+
+In this case the main problem with the original dataset  is that no only it had only 150
+entires, but also that it had only one subject, the 2016 American Elections, and what this
+means in terms of the features and classifiers is that the reliable news and fake news will
+share many similar characteristics among the items in their groups, an thus making it easier
+to achieve a better accuracy on the classifier output. It is easier to separate groups when
+their items are very similar inside each group, and share the same differences between items
+of the two groups.
+
+As we can see on Figure \ref{fig:titleNN}, some features did not have a  different distribution
+over the fake and reliable news, meaning that a classifier would not be able to separate these
+classes based on this feature only. Using more features helped overcome this problem but some
+features may actually decrease the overall performance.
+
+\begin{figure}[htbp]
+\centerline{
+    \includegraphics[width=0.5\textwidth]
+    {content/titleFK.png}
+    }
+\caption{FK index distribution over titles}
+\label{fig:titleNN}
+\end{figure}
+
+
+This also brings the problem that the features were chosen among the ones with the highest
+statistical significance in the original dataset, and this significance may not hold up
+in a different dataset such as ours. Another issue is that as the original dataset had the
+news manually chosen it is more susceptible to bias, and the fake news chosen were more
+explicit, with more distinguishable features compared to reliable news, than the ones in
+our expanded dataset.
+
 
 \section{Conclusion}
 
+The main point that we can drawn from this analysis is that the same feature set may not be
+efficient for classifying two different datasets. In this case the characteristics of the two
+datasets should be compared to see if they are similar enough. Therefore this approach of
+trying to use few but very specific features does not work well in the general case, because
+any change in the dataset may reduce the classification performance. To actually improve overall
+performance the best approach is to choose a different and wider set of features, and avoid choosing
+them based on a specific dataset, this way we can avoid the overfitting of the classification,
+where new inputs will have a worse performance due to being just slightly difference from the
+initial dataset.
+
+However only using more features is good but may have some drawbacks in regarding the processing
+speed that will be increased. Also, if the features set contains features that are not relevant
+to the analysis the performance may actually decrease due to containing inputs that cannot be
+separated by the classifier, such as what happened with the performance of out classification using
+the original and expanded features over the titles of the original dataset, where the performance
+dropped from 72.67\% with the original features to 71.33\% when using the expanded features, as shown
+on Table \ref{table:od_of} and Table \ref{table:od_ef} respectively.
+
+Another factor that can influence the performance is the choice of the classifier itself.
+The SVM is not appropriate for non-normalized data, because each input will influence the others
+and therefore the results may be good even though some features are having little impact in the
+classification. A more appropriate solution in this cases would be either normalize all the data
+or to utilize another type of classifier such as Random Forest, where the inputs do not influence
+each other and therefore requires no normalization. Also, when working with larger datasets the
+computational power required has a great impact, and the Random Forest algorithm resulted in
+significantly lower processing times, to the order of 100 times. But this of course cannot be
+generalized as the number of entries and configuration of each classifier can heavily impact
+on their speed.
+
+
+
 
 \section*{Acknowledgement}
+
 I would like to thank Prof. Luiz Celso Gomes Junior from UTFPR for the support
-provided during the development of this project.
+provided during the development of this project. It is also important to commend
+the work of all the people that collaborate developing free Data Science libraries
+and other resources that helps making Data Science more accessible, and without
+whom this work would not be possible.
 
 \bibliographystyle{ieeetr}
 \bibliography{bibliography}
