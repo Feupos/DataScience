@@ -8,6 +8,8 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{multirow}
+\usepackage{hyperref}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -26,9 +28,9 @@ fneves@alunos.utfpr.edu.br}
 
 \begin{abstract}
 
-The goal of this study was to define the viability of using features extracted from both titles 
+The goal of this study was to define the viability of using features extracted from both titles
 and body from news article for the detection of Fake News using a large dataset and comparing
-the results with these available on previous bibliography. 
+the results with these available on previous bibliography.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -43,7 +45,7 @@ however it is still very difficult to detect this type of content and stop its s
 specially in social networks and messaging apps unregulated environments. These situations
 alone give enough reason to pursue the definition of reliable approaches to Fake News detection.
 
-In this paper we aim to utilize the results obtained from a previous study done specifically for Fake News 
+In this paper we aim to utilize the results obtained from a previous study done specifically for Fake News
 about the 2016 American Election \cite{horne_2017} on a larger and more diverse dataset to determine
 their viability in a more general scenario.
 
@@ -60,8 +62,8 @@ than not will present a limited range of variation in their subjects and content
 in a more clustered distribution of parameters, making it easier for machine learning algorithms
 to achieve apparently good results.
 
-It was found that very interesting results were presented in Horne's paper \cite{horne_2017}, 
-however a very small dataset was used, and that is why we chose to use it's proposed features 
+It was found that very interesting results were presented in Horne's paper \cite{horne_2017},
+however a very small dataset was used, and that is why we chose to use it's proposed features
 to analyze a new and bigger dataset.
 
 \section{Previous Results}
@@ -77,20 +79,20 @@ described in the Table \ref{table:horne_features}.
 \hline
 Section & \multicolumn{2}{ c| }{Feature Sets} \\
 \hline
-\multirow{4}{*}{Title} & LB & Lucas Radebe \\
-    & DC & Michael Duburry \\
-    & DC & Dominic Matteo \\
-    & RB & Didier Domi \\ \hline
-\multirow{3}{*}{Body} & MC & David Batty \\
-    & MC & Eirik Bakke \\
-    & MC & Jody Morris \\ \hline
+\multirow{4}{*}{Title} & per\_stop & Percentage of stop words\\
+    & NN & Number of nouns in the text \\
+    & avg\_wlen & Average word length \\
+    & FK & Flesch-Kincaid readability index \\ \hline
+\multirow{4}{*}{Body} & NN & Number of nouns in the text \\
+    & TTR & Token to type ration (lexical richness)\\
+    & WC & Number of words in the text \\
+    & quote & Number of quotes in the text \\ \hline
 \end{tabular}
 \label{table:horne_features}
 \end{center}
 \end{table}
 
-
-In this paper he also implemented a SVM classifier to test the result of these features on his own
+In this paper he also implemented a \textit{SVM} classifier to test the result of these features on his own
 proposed dataset. Considering that he only used 4 features, which is a considerably low number for
 a text classifier, he achieved a very impressive result with over 78\% accuracy in some tests , as
 shown in Table \ref{table:horne_results}.
@@ -102,8 +104,9 @@ shown in Table \ref{table:horne_results}.
 \hline
 Feature Set & Baseline & Accuracy \\
 \hline
-Title & 50\% & 71\% \\
-Body & 50\% & 78\% \\
+Title & 50\% & 78\% \\
+\hline
+Body & 50\% & 71\% \\
 \hline
 \end{tabular}
 \label{table:horne_results}
@@ -112,22 +115,194 @@ Body & 50\% & 78\% \\
 
 For the purpose of comparing the results with a bigger dataset we chose to use a Fake News Corpus
 made available by M. Szpakowski \cite{szpakowski_2019} with over 8 million news articles, where around
-3 million of them were classified as Fake or Reliable. However due to limitations in time and 
+3 million of them were classified as Fake or Reliable. However due to limitations in time and
 computational power available at the time of the development of this project we chose to pick
 only 750 entries of both Fake and Reliable news to reduce processing time, while still being able
 to achieve meaningful results.
 
 \section{Methods and Implementation}
 
+For the development of this project we utilized the \textit{Python} language, with the aid of some external
+libraries as described in the Table \ref{table:python_libs}. \textit{Python} was chosen because it is widely
+considered the most accessible language for Data Science and it allows more people to be able to reproduce
+the results presented here \cite{cielen_meysman_mohamed_2016}\cite{richard_2018}. The full source
+code will also be made available at \url{https://github.com/Feupos/DataScience} for this purpose.
+This is a very important topic and will be further discussed in Section \ref{section:discussion}.
+
+\begin{table}[htbp]
+\caption{Python Libraries Utilized}
+\begin{center}
+\begin{tabular}{ |c|c| }
+\hline
+Library & Purpose \\ \hline
+Pandas & File processing and data structures \\ \hline
+scikit-learn & Machine learning algorithms \\ \hline
+NLTK & Natural language processing tools and dictionaries \\ \hline
+SentiStrength & Text polarity evaluation tool \\ \hline
+LexicalRichness & Lexical richness evaluation tool (TTR) \\ \hline
+Seaborn & Data visualization \\ \hline
+\end{tabular}
+\label{table:python_libs}
+\end{center}
+\end{table}
+
+With these tools we developed two scripts, one for extracting the features and another for testing
+machine learning algorithms for the classification of Fake News. Two types of classifiers were used:
+a linear kernel SVM (Space Vector Machine) classifier and a Random Forest classifier.
+
+We used \textit{scikit-learn}'s \textit{k-fold} cross validation for the performance evaluation of
+the classifiers.
+
+Besides the features already mentioned in \ref{table:horne_features} an additional set of features
+was used for the evaluating the performance of the algorithm, these features are listed on Table
+\ref{table:expanded_features} and will be referred as 'expanded feature set' whereas the features from
+Table \ref{table:horne_features} will be referred as 'original feature set'. In the same way the dataset
+from Horne's work \cite{horne_2017} will be referred as 'original dataset' and the dataset from Szpakowski
+\cite{szpakowski_2019} wil be referred as 'expanded dataset'.
+
+\begin{table}[htbp]
+\caption{Expanded Feature Set}
+\begin{center}
+\begin{tabular}{ |l|l|l| }
+\hline
+\multicolumn{2}{ |c| }{Features} \\
+\hline
+per\_stop & Percentage of stop words\\
+NN & Number of nouns in the text \\
+avg\_wlen & Average word length \\
+FK & Flesch-Kincaid readability index \\
+TTR & Token to type ration (lexical richness)\\
+WC & Number of words in the text \\
+quote & Number of quotes in the text \\
+NNP & Number of proper nouns in the text \\
+str\_neg & Average negative polarity of the text \\
+str\_pos & Average positive polarity of the text \\
+JJR & Number of comparative adjectives in the text \\
+JJS & Number of superlative adjectives in the text \\
+RBR & Number of comparative adverbs in the text \\
+RBS & Number of superlative adverbs in the text \\
+\hline
+\end{tabular}
+\label{table:expanded_features}
+\end{center}
+\end{table}
+
 \section{Results}
 
+During our tests we used multiple combinations of datasets and feature sets, to be able to highlight the
+difference in performance between them. We have also divided our results in 3 categories, one using only
+features extracted from the tiles, another with only features extracted from the bodies, and a third one
+combining all the extracted features from both titles and bodies.
+
+\subsection{Original Feature Set}
+
+In this test we used both the original feature set and the SVM classifier, to be able to reproduce the results
+found in Horne's work \cite{horne_2017}, however we were not able to achieve that, instead the results were
+'inverted', meaning that the accuracy using the Title features was achieved using the Body features and vice versa.
+This can be observed comparing our results from Table \ref{table:od_of} and the original result from Table \ref{table:horne_results}.
+
+We can also notice how the performance was significantly worse when using the expanded dataset, with the results
+on Table \ref{table:ed_of}.
+
+\begin{table}[htbp]
+\caption{Original Dataset and Original Features Performance}
+\begin{center}
+\begin{tabular}{ |l|l|l| }
+\hline
+Feature Set & Baseline & Accuracy \\
+\hline
+Title & 50\% & 72.67\% \\
+\hline
+Body & 50\% & 78.67\% \\
+\hline
+Combined & 50\% & 80\% \\
+\hline
+\end{tabular}
+\label{table:od_of}
+\end{center}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Expanded Dataset and Original Features Performance}
+\begin{center}
+\begin{tabular}{ |l|l|l| }
+\hline
+Feature Set & Baseline & Accuracy \\
+\hline
+Title & 50\% & 58.13\% \\
+\hline
+Body & 50\% & 64.27\% \\
+\hline
+Combined & 50\% & 60.27\% \\
+\hline
+\end{tabular}
+\label{table:ed_of}
+\end{center}
+\end{table}
+
+\subsection{Expanded Feature Set}
+
+We also tried increasing the number of features in order to try to improve the performance,
+specially in the expanded dataset that had a very poor performance with the original features.
+In these tests we also switched the classifier for the Random Forest classifier due to the
+SVM being to slow to calculate with too many features and entries. Previous tests had already
+suggested that the classifier had little impact in the overall performance.
+The results are shown in the Table \ref{table:od_ef} and Table \ref{table:od_of}.
+
+\begin{table}[htbp]
+\caption{Original Dataset and Expanded Features Performance}
+\begin{center}
+\begin{tabular}{ |l|l|l| }
+\hline
+Feature Set & Baseline & Accuracy \\
+\hline
+Title & 50\% & 71.33\% \\
+\hline
+Body & 50\% & 82\% \\
+\hline
+Combined & 50\% & 82\% \\
+\hline
+\end{tabular}
+\label{table:od_ef}
+\end{center}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Expanded Dataset and Expanded Features Performance}
+\begin{center}
+\begin{tabular}{ |l|l|l| }
+\hline
+Feature Set & Baseline & Accuracy \\
+\hline
+Title & 50\% & 61.93\% \\
+\hline
+Body & 50\% & 73.93\% \\
+\hline
+Combined & 50\% & 71.8\% \\
+\hline
+\end{tabular}
+\label{table:ed_ef}
+\end{center}
+\end{table}
+
+\subsection{Compared Results}
+
+TODO: plot new graph
+
 \section{Discussion}
+\label{section:discussion}
+
+\section{Discussion}
+\label{section:discussion}
+
+\section{Conclusion}
+
 
 \section*{Acknowledgement}
 I would like to thank Prof. Luiz Celso Gomes Junior from UTFPR for the support
 provided during the development of this project.
 
 \bibliographystyle{ieeetr}
-\bibliography{bibliography} 
+\bibliography{bibliography}
 
 \end{document}
