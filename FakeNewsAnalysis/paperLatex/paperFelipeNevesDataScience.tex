@@ -28,9 +28,14 @@ fneves@alunos.utfpr.edu.br}
 
 \begin{abstract}
 
-The goal of this study was to define the viability of using features extracted from both titles
-and body from news article for the detection of Fake News using a large dataset and comparing
-the results with these available on previous bibliography.
+In the past few years there have been a large number of algorithms developed to detect
+Fake News. We analyze the viability of using features extracted from both titles and
+body from news article for the detection of Fake News using a large dataset and comparing
+the results with these available on previous bibliography. We find that features used
+to classify a one dataset may not be appropriate to classify from a different one, due
+to the differences presented in these datasets. At last we test our model achieving a
+classification accuracy of 73.93\%.
+
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -40,7 +45,7 @@ Fake News, Classification, Data Science, Text Features, Unsupervised Learning
 \section{Introduction}
 
 Automatic Fake News detection is a topic of growing interest in the last couple of years,
-especially due to the influences presented in the 2016 American Elections \cite{allcott_gentzkow_2017},
+especially due to the its impact in the 2016 American Elections \cite{allcott_gentzkow_2017}\cite{dey_rafi_parash_arko_chakrabarty_2018},
 however it is still very difficult to detect this type of content and stop its spread,
 specially in social networks and messaging apps unregulated environments. These situations
 alone give enough reason to pursue the definition of reliable approaches to Fake News detection.
@@ -153,7 +158,7 @@ a linear kernel SVM (Space Vector Machine) classifier and a Random Forest classi
 We used \textit{scikit-learn}'s \textit{k-fold} cross validation for the performance evaluation of
 the classifiers.
 
-Besides the features already mentioned in \ref{table:horne_features} an additional set of features
+Besides the features already mentioned in Table \ref{table:horne_features} an additional set of features
 was used for the evaluating the performance of the algorithm, these features are listed on Table
 \ref{table:expanded_features} and will be referred as 'expanded feature set' whereas the features from
 Table \ref{table:horne_features} will be referred as 'original feature set'. In the same way the dataset
@@ -305,7 +310,7 @@ in Figure \ref{fig:results} a comparison between all the results side by side.
 
 As it is clear to see in Figure \ref{fig:results} it is clear that the performance over
 this bigger dataset was significantly worse than in the original paper \cite{horne_2017},
-however it is important to understand why whe had such difference.
+however it is important to understand why we had such difference.
 
 One very obvious reason for the divergence of the results of the classifier for the original
 dataset is that the algorithms, libraries and classifiers utilized in our implementation.
@@ -367,7 +372,8 @@ to the analysis the performance may actually decrease due to containing inputs t
 separated by the classifier, such as what happened with the performance of out classification using
 the original and expanded features over the titles of the original dataset, where the performance
 dropped from 72.67\% with the original features to 71.33\% when using the expanded features, as shown
-on Table \ref{table:od_of} and Table \ref{table:od_ef} respectively.
+on Table \ref{table:od_of} and Table \ref{table:od_ef} respectively. Simply adding more features
+will not necessarily cause an improvement in the performance \cite{volkova_shaffer_jang_hodas_2017}.
 
 Another factor that can influence the performance is the choice of the classifier itself.
 The SVM is not appropriate for non-normalized data, because each input will influence the others
